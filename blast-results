@@ -1,0 +1,42 @@
+import pandas as pd
+
+"""
+This script calculates the %query_coverage from a blast result and chooses the subject with the highest values.
+If two or more subjects have the highest %query_coverage (for example, two subjects with 100% query coverage) the
+script recovers both subjects. The output is a comma separated file where the first column is the query and any
+other columns are possible subjects with the highest %query_coverage
+"""
+
+#You have to modify this line with the path of your blast result
+blast="path-to-results"
+
+#
+my_file_output="path-to-output"
+output=open(my_file_output,"w")
+
+#functions
+def exact_mismatch(row):
+    return row["length"] - row["mismatch"] - row["gaps"]
+
+def Per_query_coverage(row):
+    return (row["exact_match"] / row["qlen"]) * 100
+
+df = pd.read_csv(blast,sep="\t",header=None)
+df_2 = df.iloc[:, [0,1, 3, 4,5, 11]]
+df_2.columns=['qseqid', 'sseqid','length', 'mismatch', 'gaps','qlen']
+df_2.set_index('qseqid', inplace=True)
+list_queries=set(list(df_2.index.values))
+
+
+for i in list_queries:
+    df_3 = df_2.loc[[i], ["sseqid", "length", "mismatch", "gaps", "qlen"]]
+    df_3['exact_match'] = df_3.apply(exact_mismatch, axis=1)
+    df_3['%Query_coverage'] = df_3.apply(Per_query_coverage, axis=1)
+    max_value = df_3["%Query_coverage"].max()
+    df_4 = df_3[df_3['%Query_coverage'] == max_value]
+    object = df_4['sseqid']
+    best_hits=[]
+    best_hits.append(i)
+    for j in object:
+    	best_hits.append(j)
+    print(*best_hits,sep=",",file=output) 
